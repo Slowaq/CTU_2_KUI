@@ -22,6 +22,7 @@ def add(a: Move, b: Direction) -> Move:
 
 class MyPlayer:
     """Template Docstring for MyPlayer, look at the TODOs"""
+    # Nic z toho neurobim meheheh
 
     # TODO replace docstring with a short description of your player
 
