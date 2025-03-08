@@ -1,0 +1,3 @@
+[submodule "kui-reversi"]
+	path = kui-reversi
+	url = https://gitlab.fel.cvut.cz/kui-student-materials/kui-reversi.git
