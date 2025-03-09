@@ -1,4 +1,4 @@
-import random, copy
+import random, copy, time
 
 type Move = tuple[int, int]
 type Direction = tuple[int, int]
@@ -16,7 +16,8 @@ DIRECTIONS: list[Direction] = [
     (1, 1),
 ]
 EMPTY_COLOR = -1
-DEPTH_OF_SEARCH = 10
+DEPTH_OF_SEARCH = float("inf")
+TIMEOUT = 4.98
 
 
 def add(a: Move, b: Direction) -> Move:
@@ -38,18 +39,27 @@ class MyPlayer:
         self.board_size = board_size
 
     def select_move(self, board: BoardState) -> Move:
+        global start, best_move_found
         # TODO: write you method
         # you can implement auxiliary functions/methods, of course
+        start = time.time()
+        best_move_found = (0,0)
         print("KHHHKT:", self.get_all_valid_moves(board))
-        minimax = self.minimax(board, DEPTH_OF_SEARCH, True, self.my_color)
+        alpha = -float("inf")
+        beta = float("inf")
+        minimax = self.minimax(board, DEPTH_OF_SEARCH, alpha, beta, True, self.my_color)
         print("MiniMax:", minimax)
         return minimax[1]
     
-    def minimax(self, board: BoardState, depth: int, maximazing_player: bool, player_color: PlayerColor):
+    def minimax(self, board: BoardState, depth: int, alpha, beta, maximazing_player: bool, player_color: PlayerColor):
+        global best_move_found
+
+        if time.time() - start >= TIMEOUT:
+            return [0, best_move_found]
         valid_moves = self.get_all_valid_moves(board)
 
         if depth == 0 or not valid_moves:
-            return [self.evaluate_board(board, player_color),(0,0)] # Return static evaluation
+            return [self.evaluate_board(board, player_color),best_move_found] # Return static evaluation
         
         if maximazing_player:
             max_eval = -float("inf")
@@ -57,12 +67,16 @@ class MyPlayer:
 
             for move in valid_moves:
                 flipped = self.make_move(board, player_color, move)
-                eval = self.minimax(board, depth - 1, False, 1 - player_color)[0]
+                eval = self.minimax(board, depth - 1, alpha, beta, False, 1 - player_color)[0]
                 self.undo_move(board, player_color, move, flipped)
                 
                 if eval > max_eval:
                     max_eval = eval
                     best_move = move
+                    best_move_found = move
+                    alpha = eval
+                if beta <= alpha:
+                    break
             
             return [max_eval, best_move]
         
@@ -71,12 +85,16 @@ class MyPlayer:
             #board_copy = [row[:] for row in board]
             for move in valid_moves:
                 flipped = self.make_move(board, 1 - player_color, move)
-                eval = self.minimax(board, depth - 1, True, 1 - player_color)[0]
+                eval = self.minimax(board, depth - 1, alpha, beta, True, 1 - player_color)[0]
                 self.undo_move(board, 1 - player_color, move, flipped)
                 
                 if eval < min_eval:
                     min_eval = eval
                     best_move = move
+                    best_move_found = move
+                    beta = eval
+                if beta <= alpha:
+                    break
 
             return [min_eval, best_move]
         
