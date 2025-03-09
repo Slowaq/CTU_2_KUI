@@ -56,17 +56,9 @@ class MyPlayer:
             #board_copy = [row[:] for row in board]
 
             for move in valid_moves:
-                print("BEFORE:")
-                for row in board:
-                    print(row)
-                print("\n")
                 flipped = self.make_move(board, player_color, move)
                 eval = self.minimax(board, depth - 1, False, 1 - player_color)[0]
                 self.undo_move(board, player_color, move, flipped)
-                print("AFTER:")
-                for row in board:
-                    print(row)
-                print("\n\n\n")
                 
                 if eval > max_eval:
                     max_eval = eval
