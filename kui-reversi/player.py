@@ -1,3 +1,5 @@
+import random, copy
+
 type Move = tuple[int, int]
 type Direction = tuple[int, int]
 type PlayerColor = int
@@ -37,7 +39,55 @@ class MyPlayer:
     def select_move(self, board: BoardState) -> Move:
         # TODO: write you method
         # you can implement auxiliary functions/methods, of course
-        return (0, 0)
+        print("KHHHKT:", self.get_all_valid_moves(board))
+        moves = self.get_all_valid_moves(board)
+        minimax = self.minimax(board, 7, True, self.my_color)
+        print("MiniMax:", minimax)
+        return minimax[1]
+    
+    def minimax(self, board: BoardState, depth: int, maximazing_player: bool, player_color: PlayerColor):
+        valid_moves = self.get_all_valid_moves(board)
+
+        if depth == 0 or not valid_moves:
+            return [self.evaluate_board(board, player_color),(0,0)] # Return static evaluation
+        
+        if maximazing_player:
+            max_eval = -float("inf")
+            board_copy = [row[:] for row in board]
+
+            for move in valid_moves:
+                self.make_move(board_copy, player_color, move)
+                eval = self.minimax(board_copy, depth - 1, False, 1 - player_color)[0]
+                max_eval = max(max_eval, eval)
+            
+            return [max_eval, move]
+        
+        else:
+            min_eval = float("inf")
+            board_copy = [row[:] for row in board]
+            for move in valid_moves:
+                self.make_move(board_copy, player_color, move)
+                eval = self.minimax(board_copy, depth - 1, True, 1 - player_color)[0]
+                min_eval = min(min_eval, eval)
+
+            return [min_eval, move]
+        
+    def evaluate_board(self, board: BoardState, my_color: PlayerColor) -> int:
+        my_stones = sum(row.count(my_color) for row in board)
+        opponent_stones = sum(row.count(my_color - 1) for row in board)
+        return my_stones - opponent_stones 
+    
+    def make_move(self, board: BoardState, color: PlayerColor, move: Move):
+        board[move[0]][move[1]] = color
+        for step in DIRECTIONS:
+            if self.__stones_flipped_in_direction(move, step, board) > 0:
+                self.__flip_stones(move, board, step, color)
+
+    def __flip_stones(self, move: Move, board: BoardState, step: Direction, color: PlayerColor):
+        position = add(move, step)
+        while self.__is_on_board(position) and self.__opponent_stone_at(position, board):
+            board[position[0]][position[1]] = color
+            position = add(position, step)
 
     def get_all_valid_moves(self, board: BoardState) -> list[Move]:
         """Get all valid moves for the player"""
