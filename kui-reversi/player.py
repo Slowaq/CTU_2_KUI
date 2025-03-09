@@ -16,6 +16,7 @@ DIRECTIONS: list[Direction] = [
     (1, 1),
 ]
 EMPTY_COLOR = -1
+DEPTH_OF_SEARCH = 10
 
 
 def add(a: Move, b: Direction) -> Move:
@@ -40,8 +41,7 @@ class MyPlayer:
         # TODO: write you method
         # you can implement auxiliary functions/methods, of course
         print("KHHHKT:", self.get_all_valid_moves(board))
-        moves = self.get_all_valid_moves(board)
-        minimax = self.minimax(board, 7, True, self.my_color)
+        minimax = self.minimax(board, DEPTH_OF_SEARCH, True, self.my_color)
         print("MiniMax:", minimax)
         return minimax[1]
     
@@ -53,24 +53,40 @@ class MyPlayer:
         
         if maximazing_player:
             max_eval = -float("inf")
-            board_copy = [row[:] for row in board]
+            #board_copy = [row[:] for row in board]
 
             for move in valid_moves:
-                self.make_move(board_copy, player_color, move)
-                eval = self.minimax(board_copy, depth - 1, False, 1 - player_color)[0]
-                max_eval = max(max_eval, eval)
+                print("BEFORE:")
+                for row in board:
+                    print(row)
+                print("\n")
+                flipped = self.make_move(board, player_color, move)
+                eval = self.minimax(board, depth - 1, False, 1 - player_color)[0]
+                self.undo_move(board, player_color, move, flipped)
+                print("AFTER:")
+                for row in board:
+                    print(row)
+                print("\n\n\n")
+                
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
             
-            return [max_eval, move]
+            return [max_eval, best_move]
         
         else:
             min_eval = float("inf")
-            board_copy = [row[:] for row in board]
+            #board_copy = [row[:] for row in board]
             for move in valid_moves:
-                self.make_move(board_copy, player_color, move)
-                eval = self.minimax(board_copy, depth - 1, True, 1 - player_color)[0]
-                min_eval = min(min_eval, eval)
+                flipped = self.make_move(board, 1 - player_color, move)
+                eval = self.minimax(board, depth - 1, True, 1 - player_color)[0]
+                self.undo_move(board, 1 - player_color, move, flipped)
+                
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
 
-            return [min_eval, move]
+            return [min_eval, best_move]
         
     def evaluate_board(self, board: BoardState, my_color: PlayerColor) -> int:
         my_stones = sum(row.count(my_color) for row in board)
@@ -78,16 +94,26 @@ class MyPlayer:
         return my_stones - opponent_stones 
     
     def make_move(self, board: BoardState, color: PlayerColor, move: Move):
+        flipped_pos = []
         board[move[0]][move[1]] = color
         for step in DIRECTIONS:
             if self.__stones_flipped_in_direction(move, step, board) > 0:
-                self.__flip_stones(move, board, step, color)
+                self.__flip_stones(move, board, step, color, flipped_pos)
+        return flipped_pos
 
-    def __flip_stones(self, move: Move, board: BoardState, step: Direction, color: PlayerColor):
+    def undo_move(self, board: BoardState, color: PlayerColor, move: Move, flipped_pos):
+        board[move[0]][move[1]] = EMPTY_COLOR
+        opponent_color = 1 - color
+        for pos in flipped_pos:
+            board[pos[0]][pos[1]] = opponent_color
+
+    def __flip_stones(self, move: Move, board: BoardState, step: Direction, color: PlayerColor, flipped):
         position = add(move, step)
         while self.__is_on_board(position) and self.__opponent_stone_at(position, board):
             board[position[0]][position[1]] = color
+            flipped.append([position[0], position[1]])
             position = add(position, step)
+
 
     def get_all_valid_moves(self, board: BoardState) -> list[Move]:
         """Get all valid moves for the player"""
