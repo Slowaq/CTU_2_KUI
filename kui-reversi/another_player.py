@@ -165,7 +165,7 @@ class MyPlayer:
             row, col = move
             penalty += weight[row][col]
         
-        return penalty + 3 * len(opponent_moves)
+        return penalty
     
     def penalty1(self, board: BoardState, weight: BoardState) -> int:
         self.my_color, self.opponent_color = self.opponent_color, self.my_color # Swap colors to get opponent's valid moves
@@ -191,7 +191,7 @@ class MyPlayer:
                 if board[i][j] == opponent_color:
                     opponent_score += weighted_board[i][j]
     
-        return my_score - opponent_score - self.penalty1(board, weighted_board)
+        return my_score - opponent_score - self.penalty(board, weighted_board)
 
     def make_move(self, board: BoardState, color: PlayerColor, move: Move):
         flipped_pos = []
