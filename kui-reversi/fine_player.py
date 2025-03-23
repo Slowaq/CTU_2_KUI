@@ -1,4 +1,4 @@
-import time
+import random, copy, time
 import numpy as np
 
 type Move = tuple[int, int]
@@ -20,8 +20,6 @@ EMPTY_COLOR = -1
 DEPTH_OF_SEARCH = float("inf")
 TIMEOUT = 4.98
 
-
-"""Base weights used for board evaluation"""
 BASE_WEIGHTS_6 = np.array([
     [150, -50, 10, 10, -50, 150],
     [-50, -50, -2, -2, -50, -50],
@@ -61,7 +59,7 @@ def add(a: Move, b: Direction) -> Move:
 
 
 class MyPlayer:
-    """The one who controls the corners, shall win the game."""
+    """Template Docstring for MyPlayer, look at the TODOs"""
     # Nic z toho neurobim meheheh
 
     # TODO replace docstring with a short description of your player
@@ -69,30 +67,29 @@ class MyPlayer:
     def __init__(
         self, my_color: PlayerColor, opponent_color: PlayerColor, board_size: int = 8
     ):
-        self.name = "Janko Mrkvicka"
+        self.name = "username"  # TODO: fill in your username
         self.my_color = my_color
         self.opponent_color = opponent_color
         self.board_size = board_size
 
     def select_move(self, board: BoardState) -> Move:
         global start, best_move_found
-
-        start = time.time()   # To prevent runtime error
+        # TODO: write you method
+        # you can implement auxiliary functions/methods, of course
+        start = time.time()
         best_move_found = (0,0)
+        print("KHHHKT:", self.get_all_valid_moves(board))
         alpha = -float("inf")
         beta = float("inf")
-
         minimax = self.minimax(board, DEPTH_OF_SEARCH, alpha, beta, True, self.my_color)
-
+        print("MiniMax:", minimax)
         return minimax[1]
     
     def minimax(self, board: BoardState, depth: int, alpha, beta, maximazing_player: bool, player_color: PlayerColor):
-        """Minimax algorithm with alpha-beta pruning. """
         global best_move_found
 
-        if time.time() - start >= TIMEOUT:  # Handle program running too long
+        if time.time() - start >= TIMEOUT:
             return [0, best_move_found]
-        
         valid_moves = self.get_all_valid_moves(board)
 
         if depth == 0 or not valid_moves:
@@ -100,15 +97,13 @@ class MyPlayer:
         
         if maximazing_player:
             max_eval = -float("inf")
+            #board_copy = [row[:] for row in board]
 
-            # Sort moves according to their evaluation for more effective pruning
             for move in sorted(valid_moves, key=lambda m: self.evaluate_board(board, self.my_color), reverse=True):
-
-                flipped = self.make_move(board, player_color, move) # Mark flipped stones for fast recovery
+                flipped = self.make_move(board, player_color, move)
                 eval = self.minimax(board, depth - 1, alpha, beta, False, 1 - player_color)[0]
                 self.undo_move(board, player_color, move, flipped)
                 
-                # Pruning
                 if eval > max_eval:
                     max_eval = eval
                     best_move = move
@@ -121,7 +116,7 @@ class MyPlayer:
         
         else:
             min_eval = float("inf")
-
+            #board_copy = [row[:] for row in board]
             for move in sorted(valid_moves, key=lambda m: self.evaluate_board(board, self.my_color), reverse=True):
                 flipped = self.make_move(board, 1 - player_color, move)
                 eval = self.minimax(board, depth - 1, alpha, beta, True, 1 - player_color)[0]
@@ -138,8 +133,6 @@ class MyPlayer:
             return [min_eval, best_move]
         
     def board_weight(self, board: BoardState):
-        """Weigh the board according to position of stones"""
-
         if self.board_size == 6:
             weights = BASE_WEIGHTS_6
 
@@ -153,22 +146,16 @@ class MyPlayer:
 
         histogram = dict(zip(unique, counts))
 
-        empty_cells = histogram.get(-1, 0)  
-
-        # in early game priorititze mobility rather than position strength
-        if empty_cells > (self.board_size) ** 2 - (self.board_size * (1/3)):
-            return weights * 0.8
-
-        if empty_cells > (self.board_size) ** 2 - (self.board_size * (2/3)):
+        if histogram[-1] > (self.board_size) ** 2 - (self.board_size * (1/3)):
+            return weights * 0.5
+        
+        if histogram[-1] > (self.board_size) ** 2 - (self.board_size * (2/3)):
             return weights * 1.2
-
+        
         else:
             return weights * 2.0
 
-
     def penalty(self, board: BoardState, weight: BoardState) -> int:
-        """Subtract points from position acording to opponent's stones strengths"""
-
         self.my_color, self.opponent_color = self.opponent_color, self.my_color # Swap colors to get opponent's valid moves
         opponent_moves = self.get_all_valid_moves(board)
         self.my_color, self.opponent_color = self.opponent_color, self.my_color # Swap back colors
@@ -180,40 +167,33 @@ class MyPlayer:
         
         return penalty + 3 * len(opponent_moves)
     
-    def evaluate_board(self, board: BoardState, player_color: PlayerColor) -> int:
-        """Evaluate the board with an emphasis on mobility early in the game rather then stone count."""
-        opponent_color = 1 - player_color
-
-        # Count number of valid moves
-        my_moves = len(self.get_all_valid_moves(board))
+    def penalty1(self, board: BoardState, weight: BoardState) -> int:
+        self.my_color, self.opponent_color = self.opponent_color, self.my_color # Swap colors to get opponent's valid moves
         opponent_moves = len(self.get_all_valid_moves(board))
-        mobility_score = my_moves - opponent_moves  # More moves available is better
+        self.my_color, self.opponent_color = self.opponent_color, self.my_color # Swap back colors
+        
+        return 5 * opponent_moves
+    
+    def evaluate_board(self, board: BoardState, my_color: PlayerColor) -> int:
+        # my_stones = sum(row.count(my_color) for row in board)
+        # opponent_stones = sum(row.count(my_color - 1) for row in board)
+        # return my_stones - opponent_stones 
 
-        # Count pieces
-        my_pieces = sum(row.count(player_color) for row in board)
-        opponent_pieces = sum(row.count(opponent_color) for row in board)
-        piece_count_score = my_pieces - opponent_pieces
+        opponent_color = 1 - my_color
+        my_score = 0
+        opponent_score = 0
+        weighted_board = board # TODO: add function that adds weights to positions
 
-        # Use board weights to evaluate positional strength
-        weight_matrix = self.board_weight(board)
-        positional_score = np.sum(weight_matrix * (board == player_color)) - np.sum(weight_matrix * (board == opponent_color))
-
-        # Adjust weights dynamically: prioritize mobility early on
-        total_pieces = my_pieces + opponent_pieces
-        max_pieces = self.board_size ** 2
-        early_game_factor = 1 - (total_pieces / max_pieces)  # High early, low late
-
-        evaluation_score = (
-            3 * early_game_factor * mobility_score +  # More weight on mobility in early game
-            1.5 * positional_score +  
-            (1 - early_game_factor) * piece_count_score - # More weight on piece count in late game
-            self.penalty(board, weight_matrix)
-        )
-
-        return evaluation_score
+        for i in range(len(weighted_board)):
+            for j in range(len(weighted_board[0])):
+                if board[i][j] == my_color:
+                    my_score += weighted_board[i][j]
+                if board[i][j] == opponent_color:
+                    opponent_score += weighted_board[i][j]
+    
+        return my_score - opponent_score - self.penalty1(board, weighted_board)
 
     def make_move(self, board: BoardState, color: PlayerColor, move: Move):
-        """Function places a stone at move and returns all the flipped stones"""
         flipped_pos = []
         board[move[0]][move[1]] = color
         for step in DIRECTIONS:
@@ -222,14 +202,12 @@ class MyPlayer:
         return flipped_pos
 
     def undo_move(self, board: BoardState, color: PlayerColor, move: Move, flipped_pos):
-        """Function returs back flipped stones"""
         board[move[0]][move[1]] = EMPTY_COLOR
         opponent_color = 1 - color
         for pos in flipped_pos:
             board[pos[0]][pos[1]] = opponent_color
 
     def __flip_stones(self, move: Move, board: BoardState, step: Direction, color: PlayerColor, flipped):
-        """Find all stones that are affected by placing a stone at move"""
         position = add(move, step)
         while self.__is_on_board(position) and self.__opponent_stone_at(position, board):
             board[position[0]][position[1]] = color
