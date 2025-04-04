@@ -17,7 +17,6 @@ DIRECTIONS: list[Direction] = [
     (1, 1),
 ]
 EMPTY_COLOR = -1
-DEPTH_OF_SEARCH = float("inf")
 TIMEOUT = 4.98
 
 
@@ -62,9 +61,6 @@ def add(a: Move, b: Direction) -> Move:
 
 class MyPlayer:
     """The one who controls the corners, shall win the game."""
-    # Nic z toho neurobim meheheh
-
-    # TODO replace docstring with a short description of your player
 
     def __init__(
         self, my_color: PlayerColor, opponent_color: PlayerColor, board_size: int = 8
@@ -82,12 +78,12 @@ class MyPlayer:
         alpha = -float("inf")
         beta = float("inf")
 
-        minimax = self.minimax(board, DEPTH_OF_SEARCH, alpha, beta, True, self.my_color)
+        minimax = self.minimax(board, 10, alpha, beta, True, self.my_color)
 
         return minimax[1]
     
     def minimax(self, board: BoardState, depth: int, alpha, beta, maximazing_player: bool, player_color: PlayerColor):
-        """Minimax algorithm with alpha-beta pruning. """
+        """Minimax algorithm with alpha-beta pruning"""
         global best_move_found
 
         if time.time() - start >= TIMEOUT:  # Handle program running too long
