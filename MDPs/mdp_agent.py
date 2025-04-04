@@ -18,8 +18,43 @@ class MDPAgent:
         self.gamma = gamma
         self.epsilon = epsilon
 
-    def bellman_without_max(self, ):
-        pass
+    def init_values(self) -> VTable:
+        """Initialize all values to 0"""
+        return {state: 0 for state in self.env.get_states()}
+    
+    def Bellman_equation(self, state, values: VTable, action: str) -> float:
+        """Compute Bellman equation when preforming action from state"""
+        return sum((probab * (self.env.get_reward(next_state) + self.gamma * values[next_state]))     # Bellman equation 
+               for next_state, probab in self.env.get_next_states_and_probs(state, action) 
+               if not self.env.is_terminal(state))
+    
+    def evaluation(self, values: VTable, qvalues: QTable, policy: Optional[Policy] = None):
+        """*** Evaluate states using Bellman equation ***
+
+            If a policy is provided, the function follows the policy (Policy Iteration).
+            If no policy is provided, it performs a full Bellman update (Value Iteration).
+        """
+
+        while True:
+            delta = 0 # Used for termination
+            for state in values:
+                v = values[state]
+                if policy:
+                    action = policy[state]
+                    values[state] = sum((probab * (self.env.get_reward(next_state) + self.gamma * values[next_state]))     # Bellman equation 
+                                    for next_state, probab in self.env.get_next_states_and_probs(state, a) 
+                                    if not self.env.is_terminal(state))
+                    
+                else:
+                    for action in self.env.get_actions(state):
+                        qvalues[state][action] = self.Bellman_equation(state, values, action)
+
+                values[state] = max(qvalues[state][action] for action in self.env.get_actions(state))
+
+                delta = max(delta, abs(v - values[state]))  
+            
+            if delta <= self.epsilon:
+                break
 
     def render(
         self,
@@ -61,49 +96,42 @@ class MDPAgent:
 
 class ValueIterationAgent(MDPAgent):
 
-    def init_values(self) -> VTable:
-        """Initialize all values to 0"""
-        return {state: 0 for state in self.env.get_states()}
-    
     def init_q_values(self) -> VTable:
-        """Initialize all q_values to 0"""
+        """Initialize all q_values to 0. 
+           This method creates nested dictionaries and 
+           sets every action of every state to 0
+        """
         return {state: {action: 0 for action in self.env.get_actions(state)} for state in self.env.get_states()}
 
     def find_policy(self) -> Policy:
         values = self.init_values()
         q_values = self.init_q_values()
         print(values)
-        
-        while True:
-            delta = 0 # Used for termination
-            for state in values:
-                v = values[state]
-                for a in self.env.get_actions(state):
-                    q_values[state][a] = sum((probab * (self.env.get_reward(next_state) + self.gamma * values[next_state])) # Bellman equation #TODO: check whether reward funciton get the correct argument, shouldn't it be next_state?
-                                        for next_state, probab in self.env.get_next_states_and_probs(state, a) if not self.env.is_terminal(state))
+    
+        self.evaluation(values, q_values)
+        # while True:
+        #     delta = 0 # Used for termination
+        #     for state in values:
+        #         v = values[state]
+        #         for a in self.env.get_actions(state):
+        #             q_values[state][a] = sum((probab * (self.env.get_reward(next_state) + self.gamma * values[next_state]))     # Bellman equation 
+        #                                  for next_state, probab in self.env.get_next_states_and_probs(state, a) 
+        #                                  if not self.env.is_terminal(state))
 
-                values[state] = max(q_values[state][action] for action in self.env.get_actions(state))
+        #         values[state] = max(q_values[state][action] for action in self.env.get_actions(state))
 
-                delta = max(delta, abs(v - values[state]))  
+        #         delta = max(delta, abs(v - values[state]))  
             
-            if delta <= self.epsilon:
-                break
+        #     if delta <= self.epsilon:
+        #         break
 
-        policy = {state: max(q_values[state], key=q_values[state].get) for state in values}
+        policy = {state: max(q_values[state], key=q_values[state].get) for state in values}     # Policy extraction
 
-        # for state in values:
-        #     policy[state] = max(
-        #         self.env.get_actions(state),
-        #         key=q_values[state][action] for action in self.env.get_actions(state)
-                
-        #         #             sum(    # Get the argmax for policy retrieval
-        #         #     probab * (self.env.get_reward(next_state) + self.gamma * values[next_state]) # Bellman equation
-        #         #     for next_state, probab in self.env.get_next_states_and_probs(state, a)
-        #         #     if not self.env.is_terminal(state)  
-        #         # ),
-        #     )
+        # Store computed values for rendering
+        self.values = values
+        self.q_values = q_values
 
-        return policy #, values, q_values
+        return policy 
 
 
 class PolicyIterationAgent(MDPAgent):
@@ -117,12 +145,19 @@ class PolicyIterationAgent(MDPAgent):
 
     def find_policy(self) -> Policy:
         policy = self.init_policy()
+        values = self.init_values()
+        q_values = self.init_q_values()
         # TODO: Here you shall implement the policy iteration algorithm
         # For now, we just generate random policy 2 times to demonstrate the rendering
-        for _ in range(3):
-            policy = self.init_policy()
-            self.render(policy=policy, wait=True)
-        return policy
+        # for _ in range(3):
+        #     policy = self.init_policy()
+        #     self.render(policy=policy, wait=True)
+
+        self.evaluation(values=values, q_values=q_values, policy=policy)  # Policy evaluation
+
+    
+
+
 
 
 if __name__ == "__main__":
@@ -135,7 +170,7 @@ if __name__ == "__main__":
     S...
     """
     map = Map.from_string(MAP)
-    # map = map_from_image("./maps/normal/normal3.png")
+    # map = map_from_image("MDPs/maps/normal/normal1.png")
     env = MDPProblem(
         map,
         action_probs=dict(forward=0.8, left=0.1, right=0.1, backward=0.0),
@@ -145,6 +180,6 @@ if __name__ == "__main__":
     print(env.get_states())
     agent = ValueIterationAgent(env, gamma=0.9, epsilon=0.001)
     #agent = PolicyIterationAgent(env, gamma=0.9, epsilon=0.001)
-    policy, values, qvalues = agent.find_policy()
+    policy = agent.find_policy()
     print("Policy found:", policy)
-    agent.render(policy=policy, wait=True, values=values, qvalues=qvalues)
+    agent.render(policy=policy, wait=True, values=agent.values, qvalues=agent.q_values)
