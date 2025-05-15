@@ -6,7 +6,7 @@ from kuimaze2 import Action, RLProblem, State
 from kuimaze2.typing import Policy, QTable, VTable
 
 T_MAX = 200  # Max steps in episode
-TIMEOUT = 20
+TIMEOUT = 60
 
 
 class RLAgent:
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     S...
     """
     #map = Map.from_string(MAP)
-    map = map_from_image("RL/maps/normal/normal3.png")
+    map = map_from_image("RL/maps/normal/normal9f.png")
     env = RLProblem(
         map,
         action_probs=dict(forward=0.8, left=0.1, right=0.1, backward=0.0),
